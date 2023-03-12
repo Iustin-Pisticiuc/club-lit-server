@@ -6,11 +6,11 @@ const corsOptionsDelegate = (req: any, callback: any) => {
   let corsOptions;
 
   if (whitelist.indexOf(req.header("Origin")) !== -1) {
-    corsOptions = { origin: true }; // reflect (enable) the requested origin in the CORS response
+    corsOptions = { origin: true };
   } else {
-    corsOptions = { origin: false }; // disable CORS for this request
+    corsOptions = { origin: false };
   }
-  callback(null, corsOptions); // callback expects two parameters: error and options
+  callback(null, corsOptions);
 };
 
 const corsHandler = cors(corsOptionsDelegate);
