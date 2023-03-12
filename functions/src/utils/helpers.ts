@@ -1,10 +1,10 @@
-import { youtube_v3 } from "googleapis";
+import { youtube_v3 as YoutubeV3 } from "googleapis";
 
 export const buildYoutubeResponse = (
-  youtubeApiResponse: youtube_v3.Schema$SearchResult[]
+  youtubeApiResponse: YoutubeV3.Schema$SearchResult[]
 ) => {
   const formattedResponse = youtubeApiResponse.map(
-    (item: youtube_v3.Schema$SearchResult) => {
+    (item: YoutubeV3.Schema$SearchResult) => {
       const { snippet } = item;
       if (snippet) {
         return {
