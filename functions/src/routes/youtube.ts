@@ -2,7 +2,7 @@ import { google } from "googleapis";
 import { buildYoutubeResponse } from "../utils/helpers";
 import { onRequest as firebaseRequest } from "firebase-functions/v1/https";
 import * as admin from "firebase-admin";
-import customCors from "../config/cors";
+import { corsHandler } from "../config/cors";
 
 admin.initializeApp();
 
@@ -11,7 +11,7 @@ const youtube = google.youtube({
 });
 
 export const getVideo = firebaseRequest((req, res) => {
-  customCors(req, res, () => {
+  corsHandler(req, res, () => {
     const title = req.query.title as string;
 
     youtube.search
