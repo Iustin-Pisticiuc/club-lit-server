@@ -21,6 +21,7 @@ export const buildYoutubeResponse = (
           .replace("Z", "");
 
         return {
+          id: item.id,
           title: decodedTitle,
           thumbnails: snippet.thumbnails?.high,
           channelTitle: snippet.channelTitle,
