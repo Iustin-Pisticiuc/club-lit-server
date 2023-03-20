@@ -83,7 +83,7 @@ export const getVotedSongs = firebaseRequest((req, res) => {
   });
 });
 
-export const incrementVotes = firebaseRequest((req, res) => {
+export const incrementSongVotes = firebaseRequest((req, res) => {
   corsHandler(req, res, async () => {
     const token = await verifyIdToken(req.get("Authorization"));
 

@@ -14,8 +14,10 @@ export const verifyIdToken = async (authorizationToken: string | undefined) => {
       // verify the user id token
       const decodedToken = await auth().verifyIdToken(idToken);
 
+      const { name, uid: userId, email } = decodedToken;
+
       // set it on the request variable so we can use on the next routes
-      return decodedToken;
+      return { name, userId, email };
     }
     return;
   } catch (error) {
