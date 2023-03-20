@@ -5,7 +5,7 @@ import { corsHandler } from "../config/cors";
 import { FieldValue } from "firebase-admin/firestore";
 import { verifyIdToken } from "../config/authenticate";
 
-export const voteSong = firebaseRequest((req, res) => {
+export const addSongToQueue = firebaseRequest((req, res) => {
   corsHandler(req, res, async () => {
     const token = await verifyIdToken(req.get("Authorization"));
 
@@ -19,7 +19,11 @@ export const voteSong = firebaseRequest((req, res) => {
         .get();
 
       if (songRef.exists) {
-        res.send({ message: "This song was already voted" });
+        res.send({
+          message:
+            // eslint-disable-next-line max-len
+            "This song was already voted. Please go into Voted Songs tab and increment the vote.",
+        });
       } else {
         const songToVote = {
           title,
@@ -35,11 +39,11 @@ export const voteSong = firebaseRequest((req, res) => {
           .doc(id)
           .set(songToVote)
           .then(() => {
-            res.send({ message: "Congrats! Your vote has been recorded" });
+            res.send({ message: "Congrats, your song was added to queue! 🎉" });
           })
           .catch((err) => {
-            res.send({ message: "Error on voting" });
-            console.log("Error on voting", err);
+            res.send({ message: "Error on adding song to queue" });
+            console.log("Error on adding song to queue!", err);
           });
       }
     } else {
@@ -69,6 +73,7 @@ export const getVotedSongs = firebaseRequest((req, res) => {
         })
         .catch((err) => {
           console.log("Error getting songs", err);
+          res.send({ message: "Error getting songs!" });
         });
 
       res.send(songs);
@@ -93,13 +98,12 @@ export const incrementVotes = firebaseRequest((req, res) => {
         .update({
           votedTimes: FieldValue.increment(1),
         })
-        .then((response) => {
-          console.log(response);
-          res.send(response);
+        .then(() => {
+          res.send({ message: "Vote incremented! 🎉" });
         })
         .catch((err) => {
           console.log(err);
-          res.send(err);
+          res.send({ message: "Error on incrementing vote!" });
         });
     } else {
       res.send({ status: 401, message: "unauthorized" });

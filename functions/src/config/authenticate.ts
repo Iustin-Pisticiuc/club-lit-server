@@ -7,8 +7,6 @@ export const verifyIdToken = async (authorizationToken: string | undefined) => {
     admin.initializeApp();
   }
 
-  console.log({ authorizationToken });
-
   try {
     if (authorizationToken) {
       const { 1: idToken } = authorizationToken.split("Bearer ");
