@@ -113,23 +113,45 @@ export const resetTodayUserVotedTime = firebaseRequest((req, res) => {
   corsHandler(req, res, async () => {
     const token = await verifyIdToken(req.get("Authorization"));
 
+    const youtubeSearch = req.query.youtubeSearch as string;
+
     if (token && token?.userId) {
-      try {
-        await admin
-          .firestore()
-          .collection("users")
-          .get()
-          .then((response) => {
-            response.docs.map((user) => {
-              user.ref.update({
-                todayVotedTimes: 0,
+      if (youtubeSearch) {
+        try {
+          await admin
+            .firestore()
+            .collection("users")
+            .get()
+            .then((response) => {
+              response.docs.map((user) => {
+                user.ref.update({
+                  todaySongsSearched: 0,
+                });
               });
             });
-          });
-        res.send({ message: "All votes reseted!" });
-      } catch (err) {
-        console.log(err);
-        res.send({ message: "Votes were not reseted!" });
+          res.send({ message: "All votes reseted!" });
+        } catch (err) {
+          console.log(err);
+          res.send({ message: "Votes were not reseted!" });
+        }
+      } else {
+        try {
+          await admin
+            .firestore()
+            .collection("users")
+            .get()
+            .then((response) => {
+              response.docs.map((user) => {
+                user.ref.update({
+                  todayVotedTimes: 0,
+                });
+              });
+            });
+          res.send({ message: "All search reseted!" });
+        } catch (err) {
+          console.log(err);
+          res.send({ message: "Votes were not reseted!" });
+        }
       }
     } else {
       res.send({ status: 401, message: "unauthorized" });
