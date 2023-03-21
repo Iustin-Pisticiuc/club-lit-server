@@ -1,3 +1,5 @@
+import admin from "firebase-admin";
+
 import { getYoutubeSongs } from "./routes/youtube";
 import {
   addSongToQueue,
@@ -7,9 +9,13 @@ import {
 import {
   addUser,
   incrementUserVotedTimes,
+  incrementUserSearchedTimes,
+  resetTodayUserSearchedTimes,
   resetTodayUserVotedTime,
   getUserById,
 } from "./routes/users";
+
+admin.initializeApp();
 
 // youtube function
 exports.getYoutubeSongs = getYoutubeSongs;
@@ -21,6 +27,8 @@ exports.incrementSongVotes = incrementSongVotes;
 
 // users functions
 exports.addUser = addUser;
+exports.incrementUserSearchedTimes = incrementUserSearchedTimes;
 exports.incrementUserVotedTimes = incrementUserVotedTimes;
+exports.resetTodayUserSearchedTimes = resetTodayUserSearchedTimes;
 exports.resetTodayUserVotedTime = resetTodayUserVotedTime;
 exports.getUserById = getUserById;
