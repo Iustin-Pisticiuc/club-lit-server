@@ -1,3 +1,4 @@
+import { HttpsError } from "firebase-functions/v1/https";
 import { youtube_v3 as YoutubeV3 } from "googleapis";
 
 export const buildYoutubeResponse = (
@@ -33,4 +34,29 @@ export const buildYoutubeResponse = (
   );
 
   return formattedResponse;
+};
+
+export const isTokenValid = (expirationDate: number) => {
+  if (Date.now() >= expirationDate * 1000) {
+    return false;
+  }
+  return true;
+};
+
+export const isUsageSearchExceeded = (user: any) => {
+  if (user.leftSearches <= 0) {
+    throw new HttpsError(
+      "permission-denied",
+      "The number of searches for today have been reached."
+    );
+  }
+};
+
+export const isUsageVotesExceeded = (user: any) => {
+  if (user.leftVotes <= 0) {
+    throw new HttpsError(
+      "permission-denied",
+      "The number votes for today have been reached."
+    );
+  }
 };

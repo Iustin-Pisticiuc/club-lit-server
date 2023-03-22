@@ -5,32 +5,38 @@ import {
 } from "firebase-functions/v1/https";
 import * as admin from "firebase-admin";
 
-import { FieldValue } from "firebase-admin/firestore";
+import { isTokenValid } from "../utils/helpers";
 
 export const addUser = firebaseCall(async (_, context: CallableContext) => {
-  if (!context.auth || !context.auth.uid) {
+  if (
+    !context.auth ||
+    !context.auth.uid ||
+    !isTokenValid(context.auth.token.exp)
+  ) {
     throw new HttpsError("failed-precondition", "Please authenticate");
   }
 
-  const usersCollection = admin.firestore().collection("users");
-
   const { uid, email, name } = context.auth.token;
+
+  const usersCollection = admin.firestore().collection("users");
 
   const user = await admin.firestore().collection("users").doc(uid).get();
 
   if (user.exists) {
     return { message: "User alreary exists" };
   } else {
+    const userFields = {
+      name,
+      email,
+      leftVotes: 5,
+      leftSearches: 2,
+      allTimeVoted: 0,
+      role: "user",
+    };
+
     const response = usersCollection
       .doc(uid)
-      .create({
-        name,
-        email,
-        todayVotedTimes: 0,
-        todaySongsSearched: 0,
-        allTimeVoted: 0,
-        role: "user",
-      })
+      .create(userFields)
       .then(() => {
         return { message: "User sucessfully added!" };
       })
@@ -43,9 +49,14 @@ export const addUser = firebaseCall(async (_, context: CallableContext) => {
 });
 
 export const getUserById = firebaseCall(async (_, context: CallableContext) => {
-  if (!context.auth || !context.auth.uid) {
+  if (
+    !context.auth ||
+    !context.auth.uid ||
+    !isTokenValid(context.auth.token.exp)
+  ) {
     throw new HttpsError("failed-precondition", "Please authenticate");
   }
+
   const usersCollection = admin.firestore().collection("users");
 
   const user = await usersCollection
@@ -58,60 +69,16 @@ export const getUserById = firebaseCall(async (_, context: CallableContext) => {
   return user;
 });
 
-export const incrementUserVotedTimes = firebaseCall(
+export const resetTodayUserVotedTimes = firebaseCall(
   async (_, context: CallableContext) => {
-    if (!context.auth || !context.auth.uid) {
+    if (
+      !context.auth ||
+      !context.auth.uid ||
+      !isTokenValid(context.auth.token.exp)
+    ) {
       throw new HttpsError("failed-precondition", "Please authenticate");
     }
 
-    const user = admin.firestore().collection("users").doc(context.auth.uid);
-
-    const response = user
-      .update({
-        todayVotedTimes: FieldValue.increment(1),
-        allTimeVoted: FieldValue.increment(1),
-      })
-      .then(() => {
-        return { message: "Vote incremented! 🎉" };
-      })
-      .catch((err) => {
-        console.log("Error on incrementing vote!", err);
-        return { message: "Error on incrementing vote!" };
-      });
-
-    return response;
-  }
-);
-
-export const incrementUserSearchedTimes = firebaseCall(
-  async (_, context: CallableContext) => {
-    if (!context.auth || !context.auth.uid) {
-      throw new HttpsError("failed-precondition", "Please authenticate");
-    }
-
-    const user = admin.firestore().collection("users").doc(context.auth.uid);
-
-    const response = await user
-      .update({
-        todaySongsSearched: FieldValue.increment(1),
-      })
-      .then(() => {
-        return { message: "Search incremented! 🎉" };
-      })
-      .catch((err) => {
-        console.log("Error on incrementing search!", err);
-        return { message: "Error on incrementing search!" };
-      });
-
-    return response;
-  }
-);
-
-export const resetTodayUserVotedTime = firebaseCall(
-  async (_, context: CallableContext) => {
-    if (!context.auth || !context.auth.uid) {
-      throw new HttpsError("failed-precondition", "Please authenticate");
-    }
     const usersCollection = admin.firestore().collection("users");
 
     await usersCollection
@@ -119,7 +86,7 @@ export const resetTodayUserVotedTime = firebaseCall(
       .then((response) => {
         response.docs.map((user) => {
           user.ref.update({
-            todayVotedTimes: 0,
+            leftVotes: 5,
           });
         });
       })
@@ -134,9 +101,14 @@ export const resetTodayUserVotedTime = firebaseCall(
 
 export const resetTodayUserSearchedTimes = firebaseCall(
   async (_, context: CallableContext) => {
-    if (!context.auth || !context.auth.uid) {
+    if (
+      !context.auth ||
+      !context.auth.uid ||
+      !isTokenValid(context.auth.token.exp)
+    ) {
       throw new HttpsError("failed-precondition", "Please authenticate");
     }
+
     const usersCollection = admin.firestore().collection("users");
 
     await usersCollection
@@ -144,7 +116,7 @@ export const resetTodayUserSearchedTimes = firebaseCall(
       .then((response) => {
         response.docs.map((user) => {
           user.ref.update({
-            todaySongsSearched: 0,
+            leftSearches: 2,
           });
         });
       })

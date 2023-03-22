@@ -9,4 +9,5 @@ export const votedSongSchema = Joi.object({
   }),
   channelTitle: Joi.string().required(),
   publishedAt: Joi.string().required(),
+  id: Joi.string().required(),
 });

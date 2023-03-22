@@ -4,14 +4,12 @@ import { getYoutubeSongs } from "./routes/youtube";
 import {
   addSongToQueue,
   getVotedSongs,
-  incrementSongVotes,
+  incrementSongAndUserVotes,
 } from "./routes/songs";
 import {
   addUser,
-  incrementUserVotedTimes,
-  incrementUserSearchedTimes,
   resetTodayUserSearchedTimes,
-  resetTodayUserVotedTime,
+  resetTodayUserVotedTimes,
   getUserById,
 } from "./routes/users";
 
@@ -23,12 +21,10 @@ exports.getYoutubeSongs = getYoutubeSongs;
 // songs functions
 exports.addSongToQueue = addSongToQueue;
 exports.getVotedSongs = getVotedSongs;
-exports.incrementSongVotes = incrementSongVotes;
+exports.incrementSongAndUserVotes = incrementSongAndUserVotes;
 
 // users functions
 exports.addUser = addUser;
-exports.incrementUserSearchedTimes = incrementUserSearchedTimes;
-exports.incrementUserVotedTimes = incrementUserVotedTimes;
 exports.resetTodayUserSearchedTimes = resetTodayUserSearchedTimes;
-exports.resetTodayUserVotedTime = resetTodayUserVotedTime;
+exports.resetTodayUserVotedTimes = resetTodayUserVotedTimes;
 exports.getUserById = getUserById;
