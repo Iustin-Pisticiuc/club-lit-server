@@ -25,35 +25,31 @@ export const addUser = firebaseCall(async (_, context: CallableContext) => {
 
   const userData = await getDocumentSnapshot("users", uid);
 
-  if (userData && userData.exists) {
-    throw new HttpsError(
-      "permission-denied",
-      "This song is not allowed to be added to list"
-    );
+  if (userData && !userData.exists) {
+    const userFields = {
+      name,
+      email,
+      leftVotes: 5,
+      leftSearches: 2,
+      allTimeVoted: 0,
+      role: "user",
+    };
+
+    const usersReference = getDocumentReference("users", uid);
+
+    const response = usersReference
+
+      .create(userFields)
+      .then(() => {
+        return { message: "User sucessfully added!" };
+      })
+      .catch((err) => {
+        console.log("Error on adding user!", err);
+        return { message: "Error on adding user" };
+      });
+    return response;
   }
-
-  const userFields = {
-    name,
-    email,
-    leftVotes: 5,
-    leftSearches: 2,
-    allTimeVoted: 0,
-    role: "user",
-  };
-
-  const usersReference = getDocumentReference("users", uid);
-
-  const response = usersReference
-
-    .create(userFields)
-    .then(() => {
-      return { message: "User sucessfully added!" };
-    })
-    .catch((err) => {
-      console.log("Error on adding user!", err);
-      return { message: "Error on adding user" };
-    });
-  return response;
+  return {};
 });
 
 export const getUserById = firebaseCall(async (_, context: CallableContext) => {
