@@ -3,9 +3,14 @@ import {
   CallableContext,
   HttpsError,
 } from "firebase-functions/v1/https";
-import * as admin from "firebase-admin";
 
 import { isTokenValid } from "../utils/helpers";
+import {
+  getDocumentQuerySnapshotData,
+  getDocumentReference,
+  getDocumentSnapshot,
+  getDocumentSnapshotData,
+} from "../utils/firebase-helpers";
 
 export const addUser = firebaseCall(async (_, context: CallableContext) => {
   if (
@@ -18,34 +23,37 @@ export const addUser = firebaseCall(async (_, context: CallableContext) => {
 
   const { uid, email, name } = context.auth.token;
 
-  const usersCollection = admin.firestore().collection("users");
+  const userData = await getDocumentSnapshot("users", uid);
 
-  const user = await admin.firestore().collection("users").doc(uid).get();
-
-  if (user.exists) {
-    return { message: "User alreary exists" };
-  } else {
-    const userFields = {
-      name,
-      email,
-      leftVotes: 5,
-      leftSearches: 2,
-      allTimeVoted: 0,
-      role: "user",
-    };
-
-    const response = usersCollection
-      .doc(uid)
-      .create(userFields)
-      .then(() => {
-        return { message: "User sucessfully added!" };
-      })
-      .catch((err) => {
-        console.log("Error on adding user!", err);
-        return { message: "Error on adding user" };
-      });
-    return response;
+  if (userData && userData.exists) {
+    throw new HttpsError(
+      "permission-denied",
+      "This song is not allowed to be added to list"
+    );
   }
+
+  const userFields = {
+    name,
+    email,
+    leftVotes: 5,
+    leftSearches: 2,
+    allTimeVoted: 0,
+    role: "user",
+  };
+
+  const usersReference = getDocumentReference("users", uid);
+
+  const response = usersReference
+
+    .create(userFields)
+    .then(() => {
+      return { message: "User sucessfully added!" };
+    })
+    .catch((err) => {
+      console.log("Error on adding user!", err);
+      return { message: "Error on adding user" };
+    });
+  return response;
 });
 
 export const getUserById = firebaseCall(async (_, context: CallableContext) => {
@@ -57,14 +65,7 @@ export const getUserById = firebaseCall(async (_, context: CallableContext) => {
     throw new HttpsError("failed-precondition", "Please authenticate");
   }
 
-  const usersCollection = admin.firestore().collection("users");
-
-  const user = await usersCollection
-    .doc(context.auth.uid)
-    .get()
-    .then((snapshot) => {
-      return snapshot.data();
-    });
+  const user = await getDocumentSnapshotData("users", context.auth.uid);
 
   return user;
 });
@@ -79,23 +80,24 @@ export const resetTodayUserVotedTimes = firebaseCall(
       throw new HttpsError("failed-precondition", "Please authenticate");
     }
 
-    const usersCollection = admin.firestore().collection("users");
+    const usersData = await getDocumentQuerySnapshotData("users");
 
-    await usersCollection
-      .get()
-      .then((response) => {
-        response.docs.map((user) => {
-          user.ref.update({
-            leftVotes: 5,
-          });
-        });
+    const usersPromises: Promise<any>[] = [];
+
+    usersData.forEach((user) => {
+      usersPromises.push(user.ref.update({ leftVotes: 5 }));
+    });
+
+    const response = await Promise.all(usersPromises)
+      .then(() => {
+        return { message: "Today users searches reseted!" };
       })
-      .catch((err: any) => {
-        console.log("Error on reseting users votes", err);
-        return { message: "Votes were not reseted!" };
+      .catch((err) => {
+        console.log("Error on reseting users search", err);
+        return { message: "Searches were not reseted!" };
       });
 
-    return { message: "Today users votes reseted!" };
+    return response;
   }
 );
 
@@ -109,21 +111,23 @@ export const resetTodayUserSearchedTimes = firebaseCall(
       throw new HttpsError("failed-precondition", "Please authenticate");
     }
 
-    const usersCollection = admin.firestore().collection("users");
+    const usersData = await getDocumentQuerySnapshotData("users");
 
-    await usersCollection
-      .get()
-      .then((response) => {
-        response.docs.map((user) => {
-          user.ref.update({
-            leftSearches: 2,
-          });
-        });
+    const usersPromises: Promise<any>[] = [];
+
+    usersData.forEach((user) => {
+      usersPromises.push(user.ref.update({ leftSearches: 2 }));
+    });
+
+    const response = await Promise.all(usersPromises)
+      .then(() => {
+        return { message: "Today users searches reseted!" };
       })
       .catch((err) => {
         console.log("Error on reseting users search", err);
-        return { message: "Votes were not reseted!" };
+        return { message: "Searches were not reseted!" };
       });
-    return { message: "Today users votes reseted!" };
+
+    return response;
   }
 );

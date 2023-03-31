@@ -3,11 +3,20 @@ import {
   HttpsError,
   CallableContext,
 } from "firebase-functions/v1/https";
-import * as admin from "firebase-admin";
 
 import { FieldValue } from "firebase-admin/firestore";
-import { isTokenValid, isUsageVotesExceeded } from "../utils/helpers";
+import {
+  checkAdminOrSuperAdmin,
+  isTokenValid,
+  isUsageVotesExceeded,
+} from "../utils/helpers";
 import { YoutubeFirebaseResponseType } from "../dtos/types";
+import {
+  getDocumentSnapshotData,
+  getDocumentReference,
+  getDocumentSnapshot,
+  getDocumentQuerySnapshotData,
+} from "../utils/firebase-helpers";
 
 export const addSongToQueue = firebaseCall(
   async (data, context: CallableContext) => {
@@ -21,64 +30,70 @@ export const addSongToQueue = firebaseCall(
 
     const { title, thumbnails, channelTitle, publishedAt, id } = data;
 
-    const votedSongsCollection = admin.firestore().collection("voted-songs");
+    const userData = await getDocumentSnapshotData("users", context.auth.uid);
 
-    const songRef = await votedSongsCollection.doc(id).get();
+    if (userData && isUsageVotesExceeded(userData)) {
+      throw new HttpsError(
+        "permission-denied",
+        "The number votes for today have been reached."
+      );
+    }
 
-    if (songRef.exists) {
-      return {
-        message:
-          // eslint-disable-next-line max-len
-          "This song was already voted. Please go into Voted Songs tab and increment the vote.",
-      };
-    } else {
-      const usersCollection = admin
-        .firestore()
-        .collection("users")
-        .doc(context.auth.uid);
+    const deletedSongSnapshot = await getDocumentSnapshot("deleted-songs", id);
 
-      const user = await usersCollection.get().then((snapshot) => {
-        return snapshot.data();
-      });
+    if (deletedSongSnapshot && deletedSongSnapshot.exists) {
+      throw new HttpsError(
+        "permission-denied",
+        "This song is not allowed to be added to list"
+      );
+    }
 
-      isUsageVotesExceeded(user);
+    const votedSongSnapshot = await getDocumentSnapshot("voted-songs", id);
 
-      const songToVote = {
+    if (votedSongSnapshot && votedSongSnapshot.exists) {
+      throw new HttpsError(
+        "permission-denied",
+        // eslint-disable-next-line max-len
+        "This song was already voted. Please go into Voted Songs tab and add your vote there."
+      );
+    }
+
+    const votedSongReference = getDocumentReference("voted-songs", id);
+
+    const response: Promise<{ message: string }> = votedSongReference
+      .set({
         title,
         thumbnails,
         channelTitle,
         publishedAt,
         votedTimes: 1,
-      };
+      })
+      .then(() => {
+        return {
+          message: "Congrats, your song was added to queue! 🎉",
+        };
+      })
+      .catch((err: any) => {
+        console.log("Error on adding song to queue!", err);
+        return { message: "Error on adding song to queue" };
+      });
 
-      const response: Promise<{ message: string }> = votedSongsCollection
-        .doc(id)
-        .set(songToVote)
-        .then(() => {
-          return {
-            message: "Congrats, your song was added to queue! 🎉",
-          };
-        })
-        .catch((err) => {
-          console.log("Error on adding song to queue!", err);
-          return { message: "Error on adding song to queue" };
-        });
+    const userReference = getDocumentReference("users", context.auth.uid);
 
-      usersCollection
-        .update({
-          leftVotes: FieldValue.increment(-1),
-          allTimeVoted: FieldValue.increment(1),
-        })
-        .then(() => {
-          return { message: "Your vote has been recorded! 🎉" };
-        })
-        .catch((err: any) => {
-          console.log("Error on recording vote!", err);
-          return { message: "Error on recording vote!" };
-        });
+    userReference
+      .update({
+        leftVotes: FieldValue.increment(-1),
+        allTimeVoted: FieldValue.increment(1),
+      })
+      .then(() => {
+        return { message: "Your vote has been recorded! 🎉" };
+      })
+      .catch((err: any) => {
+        console.log("Error on recording vote!", err);
+        return { message: "Error on recording vote!" };
+      });
 
-      return response;
-    }
+    return response;
   }
 );
 
@@ -92,33 +107,25 @@ export const getVotedSongs = firebaseCall(
       throw new HttpsError("failed-precondition", "Please authenticate");
     }
 
-    const votedSongsCollection = admin.firestore().collection("voted-songs");
-
     const songs: YoutubeFirebaseResponseType[] = [];
 
-    await votedSongsCollection
-      .get()
-      .then((snapshot) => {
-        snapshot.forEach((doc) => {
-          const id = doc.id;
+    const votesData = await getDocumentQuerySnapshotData("voted-songs");
 
-          const { publishedAt, votedTimes, title, thumbnails, channelTitle } =
-            doc.data();
+    votesData.forEach((doc) => {
+      const id = doc.id;
 
-          songs.push({
-            id,
-            publishedAt,
-            votedTimes,
-            title,
-            thumbnails,
-            channelTitle,
-          });
-        });
-      })
-      .catch((err) => {
-        console.log("Error getting songs", err);
-        return { message: "Error getting songs!" };
+      const { publishedAt, votedTimes, title, thumbnails, channelTitle } =
+        doc.data();
+
+      songs.push({
+        id,
+        publishedAt,
+        votedTimes,
+        title,
+        thumbnails,
+        channelTitle,
       });
+    });
 
     return songs;
   }
@@ -134,20 +141,16 @@ export const incrementSongAndUserVotes = firebaseCall(
       throw new HttpsError("failed-precondition", "Please authenticate");
     }
 
-    const usersCollection = admin
-      .firestore()
-      .collection("users")
-      .doc(context.auth.uid);
+    const userData = await getDocumentSnapshotData("users", context.auth.uid);
 
-    const user = await usersCollection.get().then((snapshot) => {
-      return snapshot.data();
-    });
+    if (userData && isUsageVotesExceeded(userData)) {
+      throw new HttpsError(
+        "permission-denied",
+        "The number votes for today have been reached."
+      );
+    }
 
-    isUsageVotesExceeded(user);
-
-    const votedSongsCollection = admin.firestore().collection("voted-songs");
-
-    const songToIncrementVote = votedSongsCollection.doc(id);
+    const songToIncrementVote = getDocumentReference("voted-songs", id);
 
     const response = await songToIncrementVote
       .update({
@@ -156,12 +159,14 @@ export const incrementSongAndUserVotes = firebaseCall(
       .then(() => {
         return { message: "Your vote has been recorded! 🎉" };
       })
-      .catch((err) => {
+      .catch((err: any) => {
         console.log(err);
         return { message: "Error on recording vote!" };
       });
 
-    await usersCollection
+    const user = getDocumentReference("users", context.auth.uid);
+
+    await user
       .update({
         leftVotes: FieldValue.increment(-1),
         allTimeVoted: FieldValue.increment(1),
@@ -172,6 +177,58 @@ export const incrementSongAndUserVotes = firebaseCall(
       .catch((err: any) => {
         console.log("Error on recording vote!", err);
         return { message: "Error on recording vote!" };
+      });
+
+    return response;
+  }
+);
+
+export const deleteVotedSong = firebaseCall(
+  async (id: string, context: CallableContext) => {
+    if (
+      !context.auth ||
+      !context.auth.uid ||
+      !isTokenValid(context.auth.token.exp)
+    ) {
+      throw new HttpsError("failed-precondition", "Please authenticate");
+    }
+
+    const userData = await getDocumentSnapshotData("users", context.auth.uid);
+
+    if (userData && checkAdminOrSuperAdmin(userData)) {
+      throw new HttpsError(
+        "permission-denied",
+        "The number votes for today have been reached."
+      );
+    }
+
+    const songToDelete = getDocumentReference("voted-songs", id);
+
+    const response = await songToDelete
+      .delete()
+      .then(() => {
+        return { message: "Song deleted! 🎉" };
+      })
+      .catch((err: any) => {
+        console.log("Error on deleting song!", err);
+        return { message: "Error on deleting song!" };
+      });
+
+    const deletedSongsReference = getDocumentReference("deleted-songs", id);
+
+    await deletedSongsReference
+      .set({
+        id,
+        deletedAt: new Date().toLocaleString("en-GB", {
+          timeZone: "UTC",
+        }),
+      })
+      .then(() => {
+        return { message: "Song added to delete collection! 🎉" };
+      })
+      .catch((err: any) => {
+        console.log("Error on adding song on delete collection!", err);
+        return { message: "Error on adding song on delete collection!" };
       });
 
     return response;

@@ -5,6 +5,7 @@ import {
   addSongToQueue,
   getVotedSongs,
   incrementSongAndUserVotes,
+  deleteVotedSong,
 } from "./routes/songs";
 import {
   addUser,
@@ -22,6 +23,7 @@ exports.getYoutubeSongs = getYoutubeSongs;
 exports.addSongToQueue = addSongToQueue;
 exports.getVotedSongs = getVotedSongs;
 exports.incrementSongAndUserVotes = incrementSongAndUserVotes;
+exports.deleteVotedSong = deleteVotedSong;
 
 // users functions
 exports.addUser = addUser;

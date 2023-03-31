@@ -10,8 +10,11 @@ import {
   isTokenValid,
   isUsageSearchExceeded,
 } from "../utils/helpers";
-import * as admin from "firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
+import {
+  getDocumentReference,
+  getDocumentSnapshotData,
+} from "../utils/firebase-helpers";
 
 const youtube = google.youtube({
   version: "v3",
@@ -27,16 +30,14 @@ export const getYoutubeSongs = firebaseCall(
       throw new HttpsError("failed-precondition", "Please authenticate");
     }
 
-    const usersCollection = admin
-      .firestore()
-      .collection("users")
-      .doc(context.auth.uid);
+    const userData = await getDocumentSnapshotData("users", context.auth.uid);
 
-    const user = await usersCollection.get().then((snapshot) => {
-      return snapshot.data();
-    });
-
-    isUsageSearchExceeded(user);
+    if (userData && isUsageSearchExceeded(userData)) {
+      throw new HttpsError(
+        "permission-denied",
+        "The number votes for today have been reached."
+      );
+    }
 
     const response = youtube.search
       .list({
@@ -58,7 +59,9 @@ export const getYoutubeSongs = firebaseCall(
         return { message: "Error on youtube search" };
       });
 
-    usersCollection
+    const usersReference = getDocumentReference("users", context.auth.uid);
+
+    usersReference
       .update({
         leftSearches: FieldValue.increment(-1),
       })
