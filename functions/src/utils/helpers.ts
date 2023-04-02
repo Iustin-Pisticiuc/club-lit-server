@@ -32,7 +32,7 @@ export const buildYoutubeResponse = (
     }
   );
 
-  return formattedResponse;
+  return formattedResponse.filter((res) => res.id?.kind !== "youtube#channel");
 };
 
 export const isTokenValid = (expirationDate: number) => {

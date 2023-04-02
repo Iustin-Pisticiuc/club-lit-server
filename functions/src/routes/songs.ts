@@ -34,8 +34,8 @@ export const addSongToQueue = firebaseCall(
 
     if (userData && isUsageVotesExceeded(userData)) {
       throw new HttpsError(
-        "permission-denied",
-        "The number votes for today have been reached."
+        "failed-precondition",
+        "The number votes for today have been reached! 😔"
       );
     }
 
@@ -43,8 +43,8 @@ export const addSongToQueue = firebaseCall(
 
     if (deletedSongSnapshot && deletedSongSnapshot.exists) {
       throw new HttpsError(
-        "permission-denied",
-        "This song is not allowed to be added to list"
+        "failed-precondition",
+        "This song is not allowed to be added to list! 😔"
       );
     }
 
@@ -52,7 +52,7 @@ export const addSongToQueue = firebaseCall(
 
     if (votedSongSnapshot && votedSongSnapshot.exists) {
       throw new HttpsError(
-        "permission-denied",
+        "failed-precondition",
         // eslint-disable-next-line max-len
         "This song was already voted. Please go into Voted Songs tab and add your vote there."
       );
@@ -145,8 +145,8 @@ export const incrementSongAndUserVotes = firebaseCall(
 
     if (userData && isUsageVotesExceeded(userData)) {
       throw new HttpsError(
-        "permission-denied",
-        "The number votes for today have been reached."
+        "failed-precondition",
+        "The number votes for today have been reached! 😔"
       );
     }
 
@@ -184,7 +184,7 @@ export const incrementSongAndUserVotes = firebaseCall(
 );
 
 export const deleteVotedSong = firebaseCall(
-  async (id: string, context: CallableContext) => {
+  async (data: { id: string; songTitle: string }, context: CallableContext) => {
     if (
       !context.auth ||
       !context.auth.uid ||
@@ -196,35 +196,36 @@ export const deleteVotedSong = firebaseCall(
     const userData = await getDocumentSnapshotData("users", context.auth.uid);
 
     if (userData && checkAdminOrSuperAdmin(userData)) {
-      throw new HttpsError(
-        "permission-denied",
-        "The number votes for today have been reached."
-      );
+      throw new HttpsError("failed-precondition", "Permision denied");
     }
 
-    const songToDelete = getDocumentReference("voted-songs", id);
+    const songToDelete = getDocumentReference("voted-songs", data.id);
 
     const response = await songToDelete
       .delete()
       .then(() => {
-        return { message: "Song deleted! 🎉" };
+        return { message: "Song deleted!" };
       })
       .catch((err: any) => {
         console.log("Error on deleting song!", err);
         return { message: "Error on deleting song!" };
       });
 
-    const deletedSongsReference = getDocumentReference("deleted-songs", id);
+    const deletedSongsReference = getDocumentReference(
+      "deleted-songs",
+      data.id
+    );
 
     await deletedSongsReference
       .set({
-        id,
+        deletedBy: context.auth.uid,
+        songTitle: data.songTitle,
         deletedAt: new Date().toLocaleString("en-GB", {
           timeZone: "UTC",
         }),
       })
       .then(() => {
-        return { message: "Song added to delete collection! 🎉" };
+        return { message: "Song added to delete collection!" };
       })
       .catch((err: any) => {
         console.log("Error on adding song on delete collection!", err);

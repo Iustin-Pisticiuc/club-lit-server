@@ -1,5 +1,3 @@
-import { DocumentData } from "firebase-admin/firestore";
-
 export type YoutubeFirebaseResponseType = {
   id: string;
   publishedAt: string;
@@ -12,15 +10,3 @@ export type YoutubeFirebaseResponseType = {
   };
   channelTitle: string;
 };
-
-export type UserFirestoreType = DocumentData &
-  undefined & {
-    name: string;
-    email?: string;
-    todayVotedTimes: number;
-    todaySongsSearched: number;
-    allTimeVoted: number;
-    role: "user" | "admin" | "superAdmin";
-    numberOfVotesPerDay: number;
-    numberOfSearchesPerDay: number;
-  };

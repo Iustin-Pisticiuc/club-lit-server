@@ -35,7 +35,7 @@ export const getYoutubeSongs = firebaseCall(
     if (userData && isUsageSearchExceeded(userData)) {
       throw new HttpsError(
         "permission-denied",
-        "The number votes for today have been reached."
+        "The number of searches for today have been reached! 😔"
       );
     }
 

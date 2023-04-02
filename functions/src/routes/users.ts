@@ -86,11 +86,11 @@ export const resetTodayUserVotedTimes = firebaseCall(
 
     const response = await Promise.all(usersPromises)
       .then(() => {
-        return { message: "Today users searches reseted!" };
+        return { message: "Today users votes reseted!" };
       })
       .catch((err) => {
         console.log("Error on reseting users search", err);
-        return { message: "Searches were not reseted!" };
+        return { message: "Votes were not reseted!" };
       });
 
     return response;
@@ -120,7 +120,7 @@ export const resetTodayUserSearchedTimes = firebaseCall(
         return { message: "Today users searches reseted!" };
       })
       .catch((err) => {
-        console.log("Error on reseting users search", err);
+        console.log("Error on reseting users search!", err);
         return { message: "Searches were not reseted!" };
       });
 
