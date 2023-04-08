@@ -59,21 +59,21 @@ export const isUsageVotesExceeded = (user: any) => {
 };
 
 export const checkAdminOrSuperAdmin = (user: any) => {
-  if (user && user.role === "admin" && user.role === "super-admin") {
+  if (user.role !== "admin" && user.role !== "super-admin") {
     return true;
   }
   return false;
 };
 
 export const checkSuperAdmin = (user: any) => {
-  if (user && user.role === "super-admin") {
+  if (user.role !== "super-admin") {
     return true;
   }
   return false;
 };
 
 export const checkAdmin = (user: any) => {
-  if (user && user.role === "admin") {
+  if (user.role !== "admin") {
     return true;
   }
   return false;
