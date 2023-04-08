@@ -10,3 +10,13 @@ export type YoutubeFirebaseResponseType = {
   };
   channelTitle: string;
 };
+
+export type UsersFirebaseResponseType = {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  leftSearches: number;
+  allTimeVoted: number;
+  leftVotes: number;
+};

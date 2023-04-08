@@ -1,38 +1,40 @@
+import { HttpsError } from "firebase-functions/v1/https";
 import { youtube_v3 as YoutubeV3 } from "googleapis";
 
 export const buildYoutubeResponse = (
   youtubeApiResponse: YoutubeV3.Schema$SearchResult[]
 ) => {
-  const formattedResponse = youtubeApiResponse.map(
-    (item: YoutubeV3.Schema$SearchResult) => {
+  const youtubeResponse = youtubeApiResponse
+    .filter((item) => item.id?.kind !== "youtube#channel")
+    .map((item: YoutubeV3.Schema$SearchResult) => {
       const { snippet } = item;
 
-      if (snippet) {
-        const decodedTitle = snippet.title
-          ?.replace(/&quot;/g, "'")
-          .replace(/&amp;/g, "&")
-          .replace(/&apos;/g, "'")
-          .replace(/&gt;/g, ">")
-          .replace(/&lt;/g, "<")
-          .replace(/&quot/g, "'");
-
-        const formatedPublishedAt = snippet.publishedAt
-          ?.replace("T", " ")
-          .replace("Z", "");
-
-        return {
-          id: item.id,
-          title: decodedTitle,
-          thumbnails: snippet.thumbnails?.high,
-          channelTitle: snippet.channelTitle,
-          publishedAt: formatedPublishedAt,
-        };
+      if (!snippet) {
+        throw new HttpsError("not-found", "Not found");
       }
-      return {};
-    }
-  );
 
-  return formattedResponse.filter((res) => res.id?.kind !== "youtube#channel");
+      const decodedTitle = snippet.title
+        ?.replace(/&quot;/g, "'")
+        .replace(/&amp;/g, "&")
+        .replace(/&apos;/g, "'")
+        .replace(/&gt;/g, ">")
+        .replace(/&lt;/g, "<")
+        .replace(/&quot/g, "'");
+
+      const formatedPublishedAt = snippet.publishedAt
+        ?.replace("T", " ")
+        .replace("Z", "");
+
+      return {
+        id: item.id?.videoId,
+        title: decodedTitle,
+        thumbnails: snippet.thumbnails?.high,
+        channelTitle: snippet.channelTitle,
+        publishedAt: formatedPublishedAt,
+      };
+    });
+
+  return youtubeResponse;
 };
 
 export const isTokenValid = (expirationDate: number) => {
@@ -58,6 +60,13 @@ export const isUsageVotesExceeded = (user: any) => {
 
 export const checkAdminOrSuperAdmin = (user: any) => {
   if (user && user.role === "admin" && user.role === "super-admin") {
+    return true;
+  }
+  return false;
+};
+
+export const checkSuperAdmin = (user: any) => {
+  if (user && user.role === "super-admin") {
     return true;
   }
   return false;

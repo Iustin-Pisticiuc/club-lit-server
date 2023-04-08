@@ -69,8 +69,8 @@ export const getYoutubeSongs = firebaseCall(
         return { message: "Search incremented! 🎉" };
       })
       .catch((err) => {
-        console.log("Error on incrementing search!", err);
-        return { message: "Error on incrementing search!" };
+        console.log("Error on incrementing user search!", err);
+        return { message: "Error on incrementing user search!" };
       });
 
     return response;

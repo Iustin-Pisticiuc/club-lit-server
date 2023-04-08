@@ -4,13 +4,14 @@ import {
   HttpsError,
 } from "firebase-functions/v1/https";
 
-import { isTokenValid } from "../utils/helpers";
+import { checkSuperAdmin, isTokenValid } from "../utils/helpers";
 import {
   getDocumentQuerySnapshotData,
   getDocumentReference,
   getDocumentSnapshot,
   getDocumentSnapshotData,
 } from "../utils/firebase-helpers";
+import { UsersFirebaseResponseType } from "../dtos/types";
 
 export const addUser = firebaseCall(async (_, context: CallableContext) => {
   if (
@@ -65,6 +66,84 @@ export const getUserById = firebaseCall(async (_, context: CallableContext) => {
 
   return user;
 });
+
+export const getAllUsers = firebaseCall(async (_, context: CallableContext) => {
+  if (
+    !context.auth ||
+    !context.auth.uid ||
+    !isTokenValid(context.auth.token.exp)
+  ) {
+    throw new HttpsError("failed-precondition", "Please authenticate");
+  }
+
+  const userData = await getDocumentSnapshotData("users", context.auth.uid);
+
+  if (userData && checkSuperAdmin(userData)) {
+    throw new HttpsError("failed-precondition", "Permision denied");
+  }
+
+  const usersSnapshot = await getDocumentQuerySnapshotData("users");
+
+  const users: UsersFirebaseResponseType[] = [];
+
+  usersSnapshot.forEach((doc) => {
+    const id = doc.id;
+
+    const { email, name, role, leftSearches, allTimeVoted, leftVotes } =
+      doc.data();
+
+    users.push({
+      id,
+      email,
+      name,
+      role,
+      leftSearches,
+      allTimeVoted,
+      leftVotes,
+    });
+  });
+
+  if (users.length) {
+    return users;
+  }
+
+  return { message: "Something went wrong! 🎉" };
+});
+
+export const resetUserTimes = firebaseCall(
+  async (id, context: CallableContext) => {
+    if (
+      !context.auth ||
+      !context.auth.uid ||
+      !isTokenValid(context.auth.token.exp)
+    ) {
+      throw new HttpsError("failed-precondition", "Please authenticate");
+    }
+
+    const userData = await getDocumentSnapshotData("users", context.auth.uid);
+
+    if (userData && checkSuperAdmin(userData)) {
+      throw new HttpsError("failed-precondition", "Permision denied");
+    }
+
+    const user = getDocumentReference("users", id);
+
+    const response = await user
+      .update({
+        leftVotes: 5,
+        leftSearches: 2,
+      })
+      .then(() => {
+        return { message: "User vote has been reseted! 🎉" };
+      })
+      .catch((err: any) => {
+        console.log("Error on reseting user vote!", err);
+        return { message: "Error on reseting user vote!" };
+      });
+
+    return response;
+  }
+);
 
 export const resetTodayUserVotedTimes = firebaseCall(
   async (_, context: CallableContext) => {

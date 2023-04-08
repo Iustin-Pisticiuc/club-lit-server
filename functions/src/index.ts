@@ -12,6 +12,8 @@ import {
   resetTodayUserSearchedTimes,
   resetTodayUserVotedTimes,
   getUserById,
+  getAllUsers,
+  resetUserTimes,
 } from "./routes/users";
 
 admin.initializeApp();
@@ -30,3 +32,5 @@ exports.addUser = addUser;
 exports.resetTodayUserSearchedTimes = resetTodayUserSearchedTimes;
 exports.resetTodayUserVotedTimes = resetTodayUserVotedTimes;
 exports.getUserById = getUserById;
+exports.getAllUsers = getAllUsers;
+exports.resetUserTimes = resetUserTimes;
