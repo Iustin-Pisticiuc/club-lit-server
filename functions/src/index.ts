@@ -6,6 +6,7 @@ import {
   getVotedSongs,
   incrementSongAndUserVotes,
   deleteVotedSong,
+  updateSongPlayedAt,
 } from "./routes/songs";
 import {
   addUser,
@@ -26,6 +27,7 @@ exports.addSongToQueue = addSongToQueue;
 exports.getVotedSongs = getVotedSongs;
 exports.incrementSongAndUserVotes = incrementSongAndUserVotes;
 exports.deleteVotedSong = deleteVotedSong;
+exports.updateSongPlayedAt = updateSongPlayedAt;
 
 // users functions
 exports.addUser = addUser;

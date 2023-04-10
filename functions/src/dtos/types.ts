@@ -3,6 +3,7 @@ export type YoutubeFirebaseResponseType = {
   publishedAt: string;
   votedTimes: number;
   title: string;
+  playedAt: string;
   thumbnails: {
     url: string;
     width: number;

@@ -41,6 +41,13 @@ export const addSongToQueue = firebaseCall(
 
     const deletedSongSnapshot = await getDocumentSnapshot("deleted-songs", id);
 
+    const songSnapshot = await getDocumentSnapshotData("voted-songs", id);
+    let songData: any = {};
+
+    if (songSnapshot) {
+      songData = songSnapshot;
+    }
+
     if (deletedSongSnapshot && deletedSongSnapshot.exists) {
       throw new HttpsError(
         "failed-precondition",
@@ -50,7 +57,11 @@ export const addSongToQueue = firebaseCall(
 
     const votedSongSnapshot = await getDocumentSnapshot("voted-songs", id);
 
-    if (votedSongSnapshot && votedSongSnapshot.exists) {
+    if (
+      votedSongSnapshot &&
+      votedSongSnapshot.exists &&
+      (!songData || !songData.playedAt)
+    ) {
       throw new HttpsError(
         "failed-precondition",
         // eslint-disable-next-line max-len
@@ -67,6 +78,7 @@ export const addSongToQueue = firebaseCall(
         channelTitle,
         publishedAt,
         votedTimes: 1,
+        playedAt: "",
       })
       .then(() => {
         return {
@@ -97,6 +109,44 @@ export const addSongToQueue = firebaseCall(
   }
 );
 
+export const updateSongPlayedAt = firebaseCall(
+  async (data, context: CallableContext) => {
+    if (
+      !context.auth ||
+      !context.auth.uid ||
+      !isTokenValid(context.auth.token.exp)
+    ) {
+      throw new HttpsError("failed-precondition", "Please authenticate");
+    }
+
+    const userData = await getDocumentSnapshotData("users", context.auth.uid);
+
+    if (userData && checkAdminOrSuperAdmin(userData)) {
+      throw new HttpsError("failed-precondition", "Permision denied");
+    }
+
+    const { id, playedAt } = data;
+
+    const votedSongReference = getDocumentReference("voted-songs", id);
+
+    const response: Promise<{ message: string }> = votedSongReference
+      .update({
+        playedAt,
+      })
+      .then(() => {
+        return {
+          message: "Song was removed from list",
+        };
+      })
+      .catch((err: any) => {
+        console.log("Error on removing the song from list", err);
+        return { message: "Error on removing the song from list" };
+      });
+
+    return response;
+  }
+);
+
 export const getVotedSongs = firebaseCall(
   async (_, context: CallableContext) => {
     if (
@@ -114,17 +164,26 @@ export const getVotedSongs = firebaseCall(
     votesData.forEach((doc) => {
       const id = doc.id;
 
-      const { publishedAt, votedTimes, title, thumbnails, channelTitle } =
-        doc.data();
-
-      songs.push({
-        id,
+      const {
         publishedAt,
         votedTimes,
         title,
         thumbnails,
         channelTitle,
-      });
+        playedAt,
+      } = doc.data();
+
+      if (!playedAt.length) {
+        songs.push({
+          id,
+          publishedAt,
+          votedTimes,
+          title,
+          thumbnails,
+          channelTitle,
+          playedAt,
+        });
+      }
     });
 
     return songs;
