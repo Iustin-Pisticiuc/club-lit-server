@@ -173,7 +173,7 @@ export const getVotedSongs = firebaseCall(
         playedAt,
       } = doc.data();
 
-      if (!playedAt.length) {
+      if (!playedAt) {
         songs.push({
           id,
           publishedAt,
