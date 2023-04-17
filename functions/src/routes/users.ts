@@ -110,7 +110,7 @@ export const getAllUsers = firebaseCall(async (_, context: CallableContext) => {
   return { message: "Something went wrong! 🎉" };
 });
 
-export const resetUserTimes = firebaseCall(
+export const resetSingleUserTimes = firebaseCall(
   async (id, context: CallableContext) => {
     if (
       !context.auth ||
@@ -134,18 +134,18 @@ export const resetUserTimes = firebaseCall(
         leftSearches: 2,
       })
       .then(() => {
-        return { message: "User vote has been reseted! 🎉" };
+        return { message: "User votes and searches has been reseted! 🎉" };
       })
       .catch((err: any) => {
-        console.log("Error on reseting user vote!", err);
-        return { message: "Error on reseting user vote!" };
+        console.log("Error on reseting user vote and searches!", err);
+        return { message: "Error on reseting user vote and searches!" };
       });
 
     return response;
   }
 );
 
-export const resetTodayUserVotedTimes = firebaseCall(
+export const resetAllUsersTimes = firebaseCall(
   async (_, context: CallableContext) => {
     if (
       !context.auth ||
@@ -155,52 +155,33 @@ export const resetTodayUserVotedTimes = firebaseCall(
       throw new HttpsError("failed-precondition", "Please authenticate");
     }
 
-    const usersData = await getDocumentQuerySnapshotData("users");
+    const userData = await getDocumentSnapshotData("users", context.auth.uid);
 
-    const usersPromises: Promise<any>[] = [];
-
-    usersData.forEach((user) => {
-      usersPromises.push(user.ref.update({ leftVotes: 5 }));
-    });
-
-    const response = await Promise.all(usersPromises)
-      .then(() => {
-        return { message: "Today users votes reseted!" };
-      })
-      .catch((err) => {
-        console.log("Error on reseting users search", err);
-        return { message: "Votes were not reseted!" };
-      });
-
-    return response;
-  }
-);
-
-export const resetTodayUserSearchedTimes = firebaseCall(
-  async (_, context: CallableContext) => {
-    if (
-      !context.auth ||
-      !context.auth.uid ||
-      !isTokenValid(context.auth.token.exp)
-    ) {
-      throw new HttpsError("failed-precondition", "Please authenticate");
+    if (userData && checkSuperAdmin(userData)) {
+      throw new HttpsError("failed-precondition", "Permision denied");
     }
 
-    const usersData = await getDocumentQuerySnapshotData("users");
+    const users = await getDocumentQuerySnapshotData("users");
+    const usersToUpdate: Promise<any>[] = [];
 
-    const usersPromises: Promise<any>[] = [];
-
-    usersData.forEach((user) => {
-      usersPromises.push(user.ref.update({ leftSearches: 2 }));
+    users.forEach((doc) => {
+      usersToUpdate.push(
+        doc.ref.update({
+          leftVotes: 5,
+          leftSearches: 2,
+        })
+      );
     });
 
-    const response = await Promise.all(usersPromises)
+    console.log(usersToUpdate);
+
+    const response = Promise.all(usersToUpdate)
       .then(() => {
-        return { message: "Today users searches reseted!" };
+        return { message: "Users votes and searches has been reseted! 🎉" };
       })
-      .catch((err) => {
-        console.log("Error on reseting users search!", err);
-        return { message: "Searches were not reseted!" };
+      .catch((err: any) => {
+        console.log("Error on reseting user vote and searches!", err);
+        return { message: "Error on reseting user vote and searches!" };
       });
 
     return response;

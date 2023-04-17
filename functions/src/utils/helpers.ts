@@ -58,6 +58,13 @@ export const isUsageVotesExceeded = (user: any) => {
   return false;
 };
 
+export const isSessionClosed = (session: any) => {
+  if (!session.isOpen) {
+    return true;
+  }
+  return false;
+};
+
 export const checkAdminOrSuperAdmin = (user: any) => {
   if (user.role !== "admin" && user.role !== "super-admin") {
     return true;

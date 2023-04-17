@@ -7,6 +7,7 @@ import {
 import { FieldValue } from "firebase-admin/firestore";
 import {
   checkAdminOrSuperAdmin,
+  isSessionClosed,
   isTokenValid,
   isUsageVotesExceeded,
 } from "../utils/helpers";
@@ -17,6 +18,7 @@ import {
   getDocumentSnapshot,
   getDocumentQuerySnapshotData,
 } from "../utils/firebase-helpers";
+import moment from "moment";
 
 export const addSongToQueue = firebaseCall(
   async (data, context: CallableContext) => {
@@ -26,6 +28,15 @@ export const addSongToQueue = firebaseCall(
       !isTokenValid(context.auth.token.exp)
     ) {
       throw new HttpsError("failed-precondition", "Please authenticate");
+    }
+
+    const session = await getDocumentSnapshotData("session", "session1");
+
+    if (session && isSessionClosed(session)) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Session not open. Please wait for an admin to open it!"
+      );
     }
 
     const { title, thumbnails, channelTitle, publishedAt, id } = data;
@@ -157,6 +168,15 @@ export const getVotedSongs = firebaseCall(
       throw new HttpsError("failed-precondition", "Please authenticate");
     }
 
+    const session = await getDocumentSnapshotData("session", "session1");
+
+    if (session && isSessionClosed(session)) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Session not open. Please wait for an admin to open it!"
+      );
+    }
+
     const songs: YoutubeFirebaseResponseType[] = [];
 
     const votesData = await getDocumentQuerySnapshotData("voted-songs");
@@ -279,9 +299,7 @@ export const deleteVotedSong = firebaseCall(
       .set({
         deletedBy: context.auth.uid,
         songTitle: data.songTitle,
-        deletedAt: new Date().toLocaleString("en-GB", {
-          timeZone: "UTC",
-        }),
+        deletedAt: moment().format(),
       })
       .then(() => {
         return { message: "Song added to delete collection!" };

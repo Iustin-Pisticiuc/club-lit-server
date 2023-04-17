@@ -10,14 +10,25 @@ import {
 } from "./routes/songs";
 import {
   addUser,
-  resetTodayUserSearchedTimes,
-  resetTodayUserVotedTimes,
   getUserById,
   getAllUsers,
-  resetUserTimes,
+  resetSingleUserTimes,
+  resetAllUsersTimes,
 } from "./routes/users";
+import {
+  startNewSession,
+  endCurrentSession,
+  getCurrentSession,
+  sessionStatus,
+} from "./routes/session";
 
 admin.initializeApp();
+
+// session functions
+exports.endCurrentSession = endCurrentSession;
+exports.startNewSession = startNewSession;
+exports.getCurrentSession = getCurrentSession;
+exports.sessionStatus = sessionStatus;
 
 // youtube function
 exports.getYoutubeSongs = getYoutubeSongs;
@@ -31,8 +42,7 @@ exports.updateSongPlayedAt = updateSongPlayedAt;
 
 // users functions
 exports.addUser = addUser;
-exports.resetTodayUserSearchedTimes = resetTodayUserSearchedTimes;
-exports.resetTodayUserVotedTimes = resetTodayUserVotedTimes;
+exports.resetSingleUserTimes = resetSingleUserTimes;
 exports.getUserById = getUserById;
 exports.getAllUsers = getAllUsers;
-exports.resetUserTimes = resetUserTimes;
+exports.resetAllUsersTimes = resetAllUsersTimes;

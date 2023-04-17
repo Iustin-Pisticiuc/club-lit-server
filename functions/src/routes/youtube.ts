@@ -7,6 +7,7 @@ import {
 
 import {
   buildYoutubeResponse,
+  isSessionClosed,
   isTokenValid,
   isUsageSearchExceeded,
 } from "../utils/helpers";
@@ -28,6 +29,15 @@ export const getYoutubeSongs = firebaseCall(
       !isTokenValid(context.auth.token.exp)
     ) {
       throw new HttpsError("failed-precondition", "Please authenticate");
+    }
+
+    const session = await getDocumentSnapshotData("session", "session1");
+
+    if (session && isSessionClosed(session)) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Session not open. Please wait for an admin to open it!"
+      );
     }
 
     const userData = await getDocumentSnapshotData("users", context.auth.uid);
