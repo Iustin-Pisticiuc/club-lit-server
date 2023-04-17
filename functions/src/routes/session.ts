@@ -93,7 +93,7 @@ export const startNewSession = firebaseCall(
         sessionEndedBy: "",
       })
       .then(() => {
-        return { message: "New session started" };
+        return { message: "New session started 🎉" };
       })
       .catch((err) => {
         console.log(err);
